@@ -113,7 +113,7 @@ export const nearbyForLift = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const key = `google_places_v2:${data.kind}:${data.lat.toFixed(3)}:${data.lng.toFixed(3)}:${data.radiusM}`;
+    const key = `google_places_v3:${data.kind}:${data.lat.toFixed(3)}:${data.lng.toFixed(3)}:${data.radiusM}`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const cached = await supabaseAdmin
