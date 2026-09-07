@@ -197,7 +197,9 @@ export const nearbyForLift = createServerFn({ method: "POST" })
         lng: data.lng,
         radius_m: data.radiusM,
         payload: places as unknown as never,
-        expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+        // Gli URL foto di Google scadono: teniamo la cache a 24 ore.
+        expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+
       },
       { onConflict: "cache_key" },
     );
