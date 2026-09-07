@@ -1,0 +1,242 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
+
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
+
+export interface NearbyPlace {
+  provider: string;
+  placeId: string;
+  name: string;
+  rating: number | null;
+  address: string;
+  lat: number;
+  lng: number;
+}
+
+/** Ricerca impianti di risalita italiani (dataset locale). */
+export const searchLifts = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ query: z.string().min(2).max(80) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { findLifts } = await import("./lifts.server");
+    return { lifts: findLifts(data.query) };
+  });
+
+function gatewayHeaders(fieldMask: string) {
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+  const mapsKey = process.env["GOOGLE_MAPS_API_KEY"];
+  if (!lovableKey || !mapsKey) throw new Error("Google Maps non è collegato a questo progetto.");
+  return {
+    Authorization: `Bearer ${lovableKey}`,
+    "X-Connection-Api-Key": mapsKey,
+    "Content-Type": "application/json",
+    "X-Goog-FieldMask": fieldMask,
+  };
+}
+
+const FIELD_MASK =
+  "places.id,places.displayName,places.rating,places.formattedAddress,places.location";
+
+function mapPlaces(json: unknown): NearbyPlace[] {
+  const list = (json as {
+    places?: Array<{
+      id: string;
+      displayName?: { text?: string };
+      rating?: number;
+      formattedAddress?: string;
+      location?: { latitude: number; longitude: number };
+    }>;
+  }).places;
+  return (list ?? [])
+    .filter((p) => p.location)
+    .map((p) => ({
+      provider: "google_places",
+      placeId: p.id,
+      name: p.displayName?.text ?? "",
+      rating: typeof p.rating === "number" ? p.rating : null,
+      address: p.formattedAddress ?? "",
+      lat: p.location!.latitude,
+      lng: p.location!.longitude,
+    }));
+}
+
+/**
+ * Hotel e noleggi attrezzatura entro 10 km dall'impianto scelto.
+ * I risultati vengono messi in cache nel database per una settimana.
+ */
+export const nearbyForLift = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        kind: z.enum(["hotel", "rental"]),
+        radiusM: z.number().min(1000).max(20000).default(10000),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const key = `google_places:${data.kind}:${data.lat.toFixed(3)}:${data.lng.toFixed(3)}:${data.radiusM}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const cached = await supabaseAdmin
+      .from("resort_cache")
+      .select("payload, expires_at")
+      .eq("cache_key", key)
+      .maybeSingle();
+
+    if (cached.data && new Date(cached.data.expires_at) > new Date()) {
+      return { places: cached.data.payload as unknown as NearbyPlace[], error: null as string | null };
+    }
+
+    const locationRestriction = {
+      circle: {
+        center: { latitude: data.lat, longitude: data.lng },
+        radius: data.radiusM,
+      },
+    };
+
+    let response: Response;
+    if (data.kind === "hotel") {
+      response = await fetch(`${GATEWAY_URL}/places/v1/places:searchNearby`, {
+        method: "POST",
+        headers: gatewayHeaders(FIELD_MASK),
+        body: JSON.stringify({
+          includedTypes: ["lodging"],
+          maxResultCount: 20,
+          languageCode: "it",
+          regionCode: "IT",
+          rankPreference: "DISTANCE",
+          locationRestriction,
+        }),
+      });
+    } else {
+      response = await fetch(`${GATEWAY_URL}/places/v1/places:searchText`, {
+        method: "POST",
+        headers: gatewayHeaders(FIELD_MASK),
+        body: JSON.stringify({
+          textQuery: "noleggio sci e snowboard",
+          maxResultCount: 20,
+          languageCode: "it",
+          regionCode: "IT",
+          locationBias: locationRestriction,
+        }),
+      });
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error(`Google Places ${response.status}: ${body}`);
+      return {
+        places: [] as NearbyPlace[],
+        error:
+          response.status === 403
+            ? "Google Maps ha rifiutato la richiesta (403): controlla le restrizioni della chiave."
+            : `Google Maps ha risposto ${response.status}.`,
+      };
+    }
+
+    const places = mapPlaces(await response.json());
+
+    await supabaseAdmin.from("resort_cache").upsert(
+      {
+        cache_key: key,
+        provider: "google_places",
+        kind: data.kind,
+        lat: data.lat,
+        lng: data.lng,
+        radius_m: data.radiusM,
+        payload: places as unknown as never,
+        expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+      },
+      { onConflict: "cache_key" },
+    );
+
+    return { places, error: null as string | null };
+  });
+
+const selectionSchema = z.object({
+  provider: z.string().min(1).max(60),
+  placeId: z.string().min(1).max(200),
+  name: z.string().min(1).max(200),
+  rating: z.number().min(0).max(5).nullable().optional(),
+  address: z.string().max(300).optional().default(""),
+});
+
+export const itinerarySchema = z.object({
+  userId: z.string().min(1).optional(),
+  dates: z.object({
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    totalDays: z.number().int().min(1).max(30),
+  }),
+  resort: z.object({
+    slug: z.string().min(1).max(120),
+    name: z.string().min(1).max(200),
+    coordinates: z.object({ lat: z.number(), lng: z.number() }),
+  }),
+  selectedHotel: selectionSchema,
+  selectedRental: selectionSchema,
+});
+
+export type ItineraryPayload = z.infer<typeof itinerarySchema>;
+
+export function itineraryRow(payload: ItineraryPayload, userId: string) {
+  return {
+    user_id: userId,
+    start_date: payload.dates.startDate,
+    end_date: payload.dates.endDate,
+    total_days: payload.dates.totalDays,
+    resort_slug: payload.resort.slug,
+    resort_name: payload.resort.name,
+    resort_lat: payload.resort.coordinates.lat,
+    resort_lng: payload.resort.coordinates.lng,
+    hotel_provider: payload.selectedHotel.provider,
+    hotel_place_id: payload.selectedHotel.placeId,
+    hotel_name: payload.selectedHotel.name,
+    hotel_rating: payload.selectedHotel.rating ?? null,
+    hotel_address: payload.selectedHotel.address ?? "",
+    rental_provider: payload.selectedRental.provider,
+    rental_place_id: payload.selectedRental.placeId,
+    rental_name: payload.selectedRental.name,
+    rental_rating: payload.selectedRental.rating ?? null,
+    rental_address: payload.selectedRental.address ?? "",
+  };
+}
+
+/** Salva l'itinerario dell'utente autenticato. */
+export const saveItinerary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => itinerarySchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("itineraries")
+      .insert(itineraryRow(data, context.userId))
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { id: row.id };
+  });
+
+/** Itinerari salvati dall'utente autenticato. */
+export const listItineraries = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("itineraries")
+      .select("*")
+      .order("start_date", { ascending: true });
+    if (error) throw new Error(error.message);
+    return { itineraries: data ?? [] };
+  });
+
+export const deleteItinerary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("itineraries").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
