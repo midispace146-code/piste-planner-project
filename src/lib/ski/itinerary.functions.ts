@@ -46,18 +46,23 @@ function gatewayHeaders(fieldMask: string) {
 }
 
 const FIELD_MASK =
-  "places.id,places.displayName,places.rating,places.formattedAddress,places.location";
+  "places.id,places.displayName,places.rating,places.userRatingCount,places.formattedAddress," +
+  "places.location,places.photos,places.priceLevel,places.websiteUri";
 
-function mapPlaces(json: unknown): NearbyPlace[] {
-  const list = (json as {
-    places?: Array<{
-      id: string;
-      displayName?: { text?: string };
-      rating?: number;
-      formattedAddress?: string;
-      location?: { latitude: number; longitude: number };
-    }>;
-  }).places;
+interface RawPlace {
+  id: string;
+  displayName?: { text?: string };
+  rating?: number;
+  userRatingCount?: number;
+  formattedAddress?: string;
+  location?: { latitude: number; longitude: number };
+  photos?: Array<{ name?: string }>;
+  priceLevel?: string;
+  websiteUri?: string;
+}
+
+function mapPlaces(json: unknown): Array<NearbyPlace & { photoName: string | null }> {
+  const list = (json as { places?: RawPlace[] }).places;
   return (list ?? [])
     .filter((p) => p.location)
     .map((p) => ({
@@ -65,11 +70,32 @@ function mapPlaces(json: unknown): NearbyPlace[] {
       placeId: p.id,
       name: p.displayName?.text ?? "",
       rating: typeof p.rating === "number" ? p.rating : null,
+      userRatingCount: typeof p.userRatingCount === "number" ? p.userRatingCount : null,
       address: p.formattedAddress ?? "",
       lat: p.location!.latitude,
       lng: p.location!.longitude,
+      priceLevel: p.priceLevel ?? null,
+      websiteUri: p.websiteUri ?? null,
+      photoUrl: null as string | null,
+      photoName: p.photos?.[0]?.name ?? null,
     }));
 }
+
+/** Risolve l'URL pubblico della foto reale del luogo (Places Photo media). */
+async function resolvePhoto(photoName: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${GATEWAY_URL}/places/v1/${photoName}/media?maxWidthPx=800&skipHttpRedirect=true`,
+      { headers: gatewayHeaders("*") },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as { photoUri?: string };
+    return json.photoUri ?? null;
+  } catch {
+    return null;
+  }
+}
+
 
 /**
  * Hotel e noleggi attrezzatura entro 10 km dall'impianto scelto.
