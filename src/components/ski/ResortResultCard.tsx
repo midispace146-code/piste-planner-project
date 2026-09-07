@@ -40,6 +40,8 @@ interface Props {
   hotel: boolean;
   maxBudget: number;
   selectable?: boolean;
+  /** Comprensorio scelto dall'utente e fissato in prima posizione. */
+  pinned?: boolean;
   selected?: boolean;
   onSelect?: () => void;
   /** Sezione "Hotel e noleggi consigliati": compare solo per la scheda selezionata. */
@@ -57,6 +59,7 @@ export function ResortResultCard({
   hotel,
   maxBudget,
   selectable,
+  pinned,
   selected,
   onSelect,
   children,
@@ -66,7 +69,11 @@ export function ResortResultCard({
   const { resort, costs, drive } = result;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <article
+      className={`overflow-hidden rounded-2xl border bg-card shadow-sm ${
+        pinned ? "border-primary ring-2 ring-primary/30" : "border-border"
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border p-6">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -74,6 +81,11 @@ export function ResortResultCard({
               #{rank}
             </span>
             {resort.region}
+            {pinned && (
+              <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">
+                La tua scelta
+              </span>
+            )}
           </div>
           <h2 className="mt-2 font-display text-2xl font-semibold text-card-foreground">
             {resort.name}
