@@ -41,6 +41,8 @@ const searchSchema = z.object({
   returnTime: z.string().regex(/^\d{2}:\d{2}$/).default("17:30"),
   hotel: z.boolean().default(false),
   hotelCategory: z.enum(["budget", "comfort", "luxury"]).default("comfort"),
+  /** Comprensorio scelto dall'utente: resta sempre in prima posizione. */
+  targetResort: z.string().optional(),
 });
 
 export const Route = createFileRoute("/risultati")({
@@ -155,10 +157,20 @@ function ResultsPage() {
     for (const [id, d] of Object.entries(googleData.drives)) drives[id] = d;
   }
 
-  const ranked = useMemo(
+  const rankedAll = useMemo(
     () => rankResorts(RESORT_CATALOG, input, drives),
     [input, drives],
   );
+
+  // Il comprensorio scelto dall'utente viene fissato al primo posto,
+  // senza togliere il confronto con gli altri risultati.
+  const ranked = useMemo(() => {
+    if (!search.targetResort) return rankedAll;
+    const idx = rankedAll.findIndex((r) => r.resort.id === search.targetResort);
+    if (idx <= 0) return rankedAll;
+    const picked = rankedAll[idx]!;
+    return [picked, ...rankedAll.filter((_, i) => i !== idx)];
+  }, [rankedAll, search.targetResort]);
 
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -221,6 +233,7 @@ function ResultsPage() {
                 hotel={search.hotel}
                 maxBudget={search.maxBudget}
                 selectable
+                pinned={result.resort.id === search.targetResort}
                 selected={isSelected}
                 onSelect={() => setSelectedId(result.resort.id)}
               >
@@ -271,7 +284,7 @@ function ResultsPage() {
                   setSavedOpen(false);
                   setSelectedId(null);
                   setVisible(10);
-                  navigate({ to: "/itinerario" });
+                  navigate({ to: "/crea-itinerario" });
                   window.scrollTo({ top: 0 });
                 }}
               >

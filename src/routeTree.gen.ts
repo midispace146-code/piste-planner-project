@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as EsploraRouteImport } from './routes/esplora'
 import { Route as ItinerarioRouteImport } from './routes/itinerario'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as RisultatiRouteImport } from './routes/risultati'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsploraRoute = EsploraRouteImport.update({
+  id: '/esplora',
+  path: '/esplora',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItinerarioRoute = ItinerarioRouteImport.update({
@@ -50,6 +56,7 @@ const ApiItinerariesRoute = ApiItinerariesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/esplora': typeof EsploraRoute
   '/itinerario': typeof ItinerarioRoute
   '/profilo': typeof ProfiloRoute
   '/risultati': typeof RisultatiRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/esplora': typeof EsploraRoute
   '/itinerario': typeof ItinerarioRoute
   '/profilo': typeof ProfiloRoute
   '/risultati': typeof RisultatiRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/esplora': typeof EsploraRoute
   '/itinerario': typeof ItinerarioRoute
   '/profilo': typeof ProfiloRoute
   '/risultati': typeof RisultatiRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/esplora'
     | '/itinerario'
     | '/profilo'
     | '/risultati'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/esplora'
     | '/itinerario'
     | '/profilo'
     | '/risultati'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/esplora'
     | '/itinerario'
     | '/profilo'
     | '/risultati'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  EsploraRoute: typeof EsploraRoute
   ItinerarioRoute: typeof ItinerarioRoute
   ProfiloRoute: typeof ProfiloRoute
   RisultatiRoute: typeof RisultatiRoute
@@ -122,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/esplora': {
+      id: '/esplora'
+      path: '/esplora'
+      fullPath: '/esplora'
+      preLoaderRoute: typeof EsploraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/itinerario': {
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  EsploraRoute: EsploraRoute,
   ItinerarioRoute: ItinerarioRoute,
   ProfiloRoute: ProfiloRoute,
   RisultatiRoute: RisultatiRoute,
