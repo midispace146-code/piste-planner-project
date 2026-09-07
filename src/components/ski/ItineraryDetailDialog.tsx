@@ -2,6 +2,7 @@ import {
   BedDouble,
   CalendarRange,
   ExternalLink,
+  Gauge,
   MapPin,
   Mountain,
   Star,
@@ -97,6 +98,32 @@ export function ItineraryDetailDialog({
               </a>
             </section>
 
+
+            {info && (
+              <section className="mt-3 rounded-xl border border-border p-4">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Gauge className="h-4 w-4 text-primary" /> Efficienza del comprensorio
+                </h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Badge variant={info.season.open ? "secondary" : "outline"}>
+                    {info.season.badge}
+                  </Badge>
+                  {info.lifts && (
+                    <Badge variant="outline">
+                      Impianti {info.lifts.open}/{info.lifts.total}
+                    </Badge>
+                  )}
+                  {info.resort.total_ski_km > 0 && (
+                    <Badge variant="outline">{info.resort.total_ski_km} km di piste</Badge>
+                  )}
+                  <Badge variant="outline">Quota {info.resort.altitude} m</Badge>
+                </div>
+                {!info.season.open && (
+                  <p className="mt-2 text-sm text-muted-foreground">{info.season.message}</p>
+                )}
+              </section>
+            )}
+
             <section className="mt-3 rounded-xl border border-border p-4">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <BedDouble className="h-4 w-4 text-primary" /> Hotel selezionato
@@ -114,7 +141,12 @@ export function ItineraryDetailDialog({
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button asChild size="sm">
                   <a
-                    href={bookingLink(itinerary.hotel_name, itinerary.hotel_address)}
+                    href={bookingUrl(
+                      itinerary.hotel_name,
+                      itinerary.hotel_address,
+                      itinerary.start_date,
+                      itinerary.end_date,
+                    )}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -123,7 +155,7 @@ export function ItineraryDetailDialog({
                 </Button>
                 <Button asChild size="sm" variant="secondary">
                   <a
-                    href={placeLink(
+                    href={placeUrl(
                       itinerary.hotel_name,
                       itinerary.hotel_place_id,
                       itinerary.hotel_address,
@@ -153,7 +185,7 @@ export function ItineraryDetailDialog({
               )}
               <Button asChild size="sm" className="mt-3">
                 <a
-                  href={placeLink(
+                  href={placeUrl(
                     itinerary.rental_name,
                     itinerary.rental_place_id,
                     itinerary.rental_address,
