@@ -113,7 +113,7 @@ export const nearbyForLift = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const key = `google_places:${data.kind}:${data.lat.toFixed(3)}:${data.lng.toFixed(3)}:${data.radiusM}`;
+    const key = `google_places_v2:${data.kind}:${data.lat.toFixed(3)}:${data.lng.toFixed(3)}:${data.radiusM}`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const cached = await supabaseAdmin
@@ -173,7 +173,20 @@ export const nearbyForLift = createServerFn({ method: "POST" })
       };
     }
 
-    const places = mapPlaces(await response.json());
+    const raw = mapPlaces(await response.json());
+
+    // Foto reali: risolviamo l'URL pubblico solo per i primi risultati mostrati.
+    const withPhotos = await Promise.all(
+      raw.slice(0, 12).map(async ({ photoName, ...place }) => ({
+        ...place,
+        photoUrl: photoName ? await resolvePhoto(photoName) : null,
+      })),
+    );
+    const places: NearbyPlace[] = [
+      ...withPhotos,
+      ...raw.slice(12).map(({ photoName: _photoName, ...place }) => place),
+    ];
+
 
     await supabaseAdmin.from("resort_cache").upsert(
       {
