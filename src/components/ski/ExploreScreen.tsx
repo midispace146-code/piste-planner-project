@@ -17,7 +17,7 @@ import { ResortStatusPanel } from "@/components/ski/ResortStatusPanel";
 import { CATALOG_REGIONS, RESORT_CATALOG, searchCatalog } from "@/lib/ski/catalog";
 import { fetchSkiNews } from "@/lib/ski/news.functions";
 import resortsData from "@/data/resorts.json";
-import newsData from "@/data/news.json";
+import staticNews from "@/data/news.json";
 import type { Resort } from "@/lib/ski/types";
 
 /** Dati editoriali extra disponibili solo per i comprensori curati. */
@@ -34,36 +34,23 @@ type CuratedExtra = {
 const extras = new Map<string, CuratedExtra>(
   (resortsData as unknown as CuratedExtra[]).map((r) => [r.id, r]),
 );
-const fallbackNews = newsData as NewsItem[];
+const fallbackNews = staticNews as NewsItem[];
 
 const SNOW_FILTERS = ["Tutte", "Neve fresca", "Neve compatta", "Polvere"] as const;
 
 const INITIAL_DESTINATIONS = 5;
 const DESTINATIONS_STEP = 10;
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Esplora la neve — SkiScore" },
-      {
-        name: "description",
-        content:
-          "Cerca fra tutti i comprensori sciistici italiani, controlla impianti, meteo, bollettino neve e webcam live, e leggi le ultime notizie della montagna.",
-      },
-      { property: "og:title", content: "Esplora la neve — SkiScore" },
-      {
-        property: "og:description",
-        content:
-          "Stato piste, orari impianti, meteo e webcam dei comprensori italiani, più le notizie dalle fonti ufficiali.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: ExplorePage,
-});
-
 export function ExploreScreen() {
+  const loadNews = useServerFn(fetchSkiNews);
+  const { data: newsData } = useQuery({
+    queryKey: ["ski-news"],
+    queryFn: () => loadNews(),
+    staleTime: 1000 * 60 * 10,
+  });
+  // Feed RSS in tempo reale, con le notizie editoriali come fallback.
+  const news: NewsItem[] = newsData?.news?.length ? newsData.news : fallbackNews;
+
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Resort | null>(null);
   const [region, setRegion] = useState("Tutte");
@@ -108,7 +95,7 @@ export function ExploreScreen() {
               </span>
             </div>
             <Button asChild size="sm" variant="secondary">
-              <Link to="/itinerario">Crea itinerario</Link>
+              <Link to="/crea-itinerario">Crea itinerario</Link>
             </Button>
           </div>
 
@@ -309,9 +296,6 @@ function ResortQuickView({
               <li className="flex items-center gap-3">
                 <Mountain className="h-4 w-4 shrink-0 text-primary" />
                 <span className="text-foreground">
-                  {extra?.open_slopes_count !== undefined && extra.total_slopes_count !== undefined
-                    ? `Piste aperte: ${extra.open_slopes_count}/${extra.total_slopes_count} · `
-                    : ""}
                   {resort.total_ski_km > 0 ? `${resort.total_ski_km} km di piste` : "km piste n.d."}
                 </span>
               </li>
@@ -328,32 +312,20 @@ function ResortQuickView({
                   <span className="text-foreground">Impianti: {extra.opening_hours}</span>
                 </li>
               )}
-              {(extra?.weather_status || extra?.snow_report) && (
-                <li className="flex items-center gap-3">
-                  <CloudSun className="h-4 w-4 shrink-0 text-primary" />
-                  <span className="text-foreground">
-                    {[extra.weather_status, extra.snow_report].filter(Boolean).join(" · ")}
-                  </span>
-                </li>
-              )}
-              <li className="flex items-center gap-3">
-                <Video className="h-4 w-4 shrink-0 text-primary" />
-                <a
-                  href={
-                    extra?.webcam_url ??
-                    `https://www.google.com/maps/search/?api=1&query=${resort.lat},${resort.lng}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-primary hover:underline"
-                >
-                  {extra?.webcam_url ? "Guarda le webcam live" : "Apri la località su Google Maps"}
-                </a>
-              </li>
             </ul>
 
+            <div className="mt-4">
+              <ResortStatusPanel
+                resort={resort}
+                snowReport={extra?.snow_report ?? null}
+                openingHours={extra?.opening_hours ?? null}
+              />
+            </div>
+
             <Button asChild className="mt-4 w-full">
-              <Link to="/itinerario">Pianifica la sciata qui</Link>
+              <Link to="/crea-itinerario" search={{ targetResort: resort.id }}>
+                Pianifica la sciata qui
+              </Link>
             </Button>
           </>
         )}
