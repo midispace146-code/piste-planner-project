@@ -34,21 +34,20 @@ export interface ItineraryRowLike {
   rental_place_id: string;
 }
 
-/** Link diretto alla scheda Google Maps del luogo (prenotazione/contatti). */
-function placeLink(name: string, placeId: string, address: string | null): string {
-  const query = encodeURIComponent([name, address].filter(Boolean).join(" "));
-  return placeId
-    ? `https://www.google.com/maps/search/?api=1&query=${query}&query_place_id=${encodeURIComponent(placeId)}`
-    : `https://www.google.com/maps/search/?api=1&query=${query}`;
-}
-
-function bookingLink(name: string, address: string | null): string {
-  const query = encodeURIComponent([name, address].filter(Boolean).join(" "));
-  return `https://www.booking.com/searchresults.it.html?ss=${query}`;
-}
-
 const it = (iso: string) => new Date(iso).toLocaleDateString("it-IT");
 const asNumber = (v: number | string | null) => (v === null ? null : Number(v));
+
+/** Dati reali del comprensorio salvato (impianti, piste, stagionalità). */
+function resortInfo(name: string) {
+  const target = name.trim().toLowerCase();
+  const resort =
+    RESORT_CATALOG.find((r) => r.name.toLowerCase() === target) ??
+    RESORT_CATALOG.find((r) => r.name.toLowerCase().includes(target));
+  if (!resort) return null;
+  const lifts = RESORT_LIFT_STATUS.get(resort.id);
+  return { resort, lifts, season: resortSeason(resort) };
+}
+
 
 export function ItineraryDetailDialog({
   itinerary,
