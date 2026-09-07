@@ -173,7 +173,12 @@ export const nearbyForLift = createServerFn({ method: "POST" })
       };
     }
 
-    const raw = mapPlaces(await response.json());
+    // Ordiniamo per reputazione reale: prima le strutture con voti e recensioni.
+    const raw = mapPlaces(await response.json()).sort((a, b) => {
+      const score = (p: typeof a) =>
+        (p.rating ?? 0) * Math.log10((p.userRatingCount ?? 0) + 1) + (p.photoName ? 0.5 : 0);
+      return score(b) - score(a);
+    });
 
     // Foto reali: risolviamo l'URL pubblico solo per i primi risultati mostrati.
     const withPhotos = await Promise.all(
@@ -186,6 +191,7 @@ export const nearbyForLift = createServerFn({ method: "POST" })
       ...withPhotos,
       ...raw.slice(12).map(({ photoName: _photoName, ...place }) => place),
     ];
+
 
 
     await supabaseAdmin.from("resort_cache").upsert(
