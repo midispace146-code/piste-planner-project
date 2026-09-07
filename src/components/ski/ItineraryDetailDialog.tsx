@@ -7,6 +7,7 @@ import {
   Star,
   Store,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { bookingUrl, placeUrl } from "@/lib/ski/booking";
+import { RESORT_CATALOG, RESORT_LIFT_STATUS } from "@/lib/ski/catalog";
+import { resortSeason } from "@/lib/ski/season";
 
 export interface ItineraryRowLike {
   id: string;
