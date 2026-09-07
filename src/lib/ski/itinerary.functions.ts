@@ -12,7 +12,16 @@ export interface NearbyPlace {
   address: string;
   lat: number;
   lng: number;
+  /** Numero di recensioni Google. */
+  userRatingCount?: number | null;
+  /** Foto reale della struttura (Google Places Photo). */
+  photoUrl?: string | null;
+  /** Fascia di prezzo Google (PRICE_LEVEL_*). */
+  priceLevel?: string | null;
+  /** Sito ufficiale della struttura/negozio. */
+  websiteUri?: string | null;
 }
+
 
 /** Ricerca impianti di risalita italiani (dataset locale). */
 export const searchLifts = createServerFn({ method: "POST" })
