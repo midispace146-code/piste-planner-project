@@ -10,33 +10,102 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ItinerarioRouteImport } from './routes/itinerario'
+import { Route as ProfiloRouteImport } from './routes/profilo'
+import { Route as RisultatiRouteImport } from './routes/risultati'
+import { Route as ApiItinerariesRouteImport } from './routes/api/itineraries'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ItinerarioRoute = ItinerarioRouteImport.update({
+  id: '/itinerario',
+  path: '/itinerario',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfiloRoute = ProfiloRouteImport.update({
+  id: '/profilo',
+  path: '/profilo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RisultatiRoute = RisultatiRouteImport.update({
+  id: '/risultati',
+  path: '/risultati',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiItinerariesRoute = ApiItinerariesRouteImport.update({
+  id: '/api/itineraries',
+  path: '/api/itineraries',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/itinerario': typeof ItinerarioRoute
+  '/profilo': typeof ProfiloRoute
+  '/risultati': typeof RisultatiRoute
+  '/api/itineraries': typeof ApiItinerariesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/itinerario': typeof ItinerarioRoute
+  '/profilo': typeof ProfiloRoute
+  '/risultati': typeof RisultatiRoute
+  '/api/itineraries': typeof ApiItinerariesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/itinerario': typeof ItinerarioRoute
+  '/profilo': typeof ProfiloRoute
+  '/risultati': typeof RisultatiRoute
+  '/api/itineraries': typeof ApiItinerariesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/itinerario'
+    | '/profilo'
+    | '/risultati'
+    | '/api/itineraries'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/itinerario'
+    | '/profilo'
+    | '/risultati'
+    | '/api/itineraries'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/itinerario'
+    | '/profilo'
+    | '/risultati'
+    | '/api/itineraries'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  ItinerarioRoute: typeof ItinerarioRoute
+  ProfiloRoute: typeof ProfiloRoute
+  RisultatiRoute: typeof RisultatiRoute
+  ApiItinerariesRoute: typeof ApiItinerariesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +117,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/itinerario': {
+      id: '/itinerario'
+      path: '/itinerario'
+      fullPath: '/itinerario'
+      preLoaderRoute: typeof ItinerarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profilo': {
+      id: '/profilo'
+      path: '/profilo'
+      fullPath: '/profilo'
+      preLoaderRoute: typeof ProfiloRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/risultati': {
+      id: '/risultati'
+      path: '/risultati'
+      fullPath: '/risultati'
+      preLoaderRoute: typeof RisultatiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/itineraries': {
+      id: '/api/itineraries'
+      path: '/api/itineraries'
+      fullPath: '/api/itineraries'
+      preLoaderRoute: typeof ApiItinerariesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  ItinerarioRoute: ItinerarioRoute,
+  ProfiloRoute: ProfiloRoute,
+  RisultatiRoute: RisultatiRoute,
+  ApiItinerariesRoute: ApiItinerariesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
