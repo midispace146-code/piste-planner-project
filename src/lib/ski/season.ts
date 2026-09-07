@@ -25,12 +25,16 @@ const slugOf = (name: string) => normalizeName(name).replace(/\s+/g, "-");
 const MAX_ACTIVE_TOP = new Map<string, number>();
 
 for (const raw of liftsIndex as unknown as RawLift[]) {
-  const label = raw.resortName ?? raw.resort;
-  if (!label || raw.active === false) continue;
-  const slug = slugOf(label);
+  if (raw.active === false) continue;
   const ele = typeof raw.topEle === "number" ? raw.topEle : 0;
-  if (ele > (MAX_ACTIVE_TOP.get(slug) ?? 0)) MAX_ACTIVE_TOP.set(slug, ele);
+  const keys = [raw.resort, raw.resortName ? slugOf(raw.resortName) : null].filter(
+    (k): k is string => Boolean(k),
+  );
+  for (const key of keys) {
+    if (ele > (MAX_ACTIVE_TOP.get(key) ?? 0)) MAX_ACTIVE_TOP.set(key, ele);
+  }
 }
+
 
 /** Quota massima raggiunta dagli impianti attivi del comprensorio. */
 export function maxActiveTopElevation(resort: Resort): number {
