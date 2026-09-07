@@ -12,7 +12,16 @@ export interface NearbyPlace {
   address: string;
   lat: number;
   lng: number;
+  /** Numero di recensioni Google. */
+  userRatingCount?: number | null;
+  /** Foto reale della struttura (Google Places Photo). */
+  photoUrl?: string | null;
+  /** Fascia di prezzo Google (PRICE_LEVEL_*). */
+  priceLevel?: string | null;
+  /** Sito ufficiale della struttura/negozio. */
+  websiteUri?: string | null;
 }
+
 
 /** Ricerca impianti di risalita italiani (dataset locale). */
 export const searchLifts = createServerFn({ method: "POST" })
@@ -37,18 +46,23 @@ function gatewayHeaders(fieldMask: string) {
 }
 
 const FIELD_MASK =
-  "places.id,places.displayName,places.rating,places.formattedAddress,places.location";
+  "places.id,places.displayName,places.rating,places.userRatingCount,places.formattedAddress," +
+  "places.location,places.photos,places.priceLevel,places.websiteUri";
 
-function mapPlaces(json: unknown): NearbyPlace[] {
-  const list = (json as {
-    places?: Array<{
-      id: string;
-      displayName?: { text?: string };
-      rating?: number;
-      formattedAddress?: string;
-      location?: { latitude: number; longitude: number };
-    }>;
-  }).places;
+interface RawPlace {
+  id: string;
+  displayName?: { text?: string };
+  rating?: number;
+  userRatingCount?: number;
+  formattedAddress?: string;
+  location?: { latitude: number; longitude: number };
+  photos?: Array<{ name?: string }>;
+  priceLevel?: string;
+  websiteUri?: string;
+}
+
+function mapPlaces(json: unknown): Array<NearbyPlace & { photoName: string | null }> {
+  const list = (json as { places?: RawPlace[] }).places;
   return (list ?? [])
     .filter((p) => p.location)
     .map((p) => ({
@@ -56,11 +70,32 @@ function mapPlaces(json: unknown): NearbyPlace[] {
       placeId: p.id,
       name: p.displayName?.text ?? "",
       rating: typeof p.rating === "number" ? p.rating : null,
+      userRatingCount: typeof p.userRatingCount === "number" ? p.userRatingCount : null,
       address: p.formattedAddress ?? "",
       lat: p.location!.latitude,
       lng: p.location!.longitude,
+      priceLevel: p.priceLevel ?? null,
+      websiteUri: p.websiteUri ?? null,
+      photoUrl: null as string | null,
+      photoName: p.photos?.[0]?.name ?? null,
     }));
 }
+
+/** Risolve l'URL pubblico della foto reale del luogo (Places Photo media). */
+async function resolvePhoto(photoName: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${GATEWAY_URL}/places/v1/${photoName}/media?maxWidthPx=800&skipHttpRedirect=true`,
+      { headers: gatewayHeaders("*") },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as { photoUri?: string };
+    return json.photoUri ?? null;
+  } catch {
+    return null;
+  }
+}
+
 
 /**
  * Hotel e noleggi attrezzatura entro 10 km dall'impianto scelto.
@@ -78,7 +113,7 @@ export const nearbyForLift = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const key = `google_places:${data.kind}:${data.lat.toFixed(3)}:${data.lng.toFixed(3)}:${data.radiusM}`;
+    const key = `google_places_v3:${data.kind}:${data.lat.toFixed(3)}:${data.lng.toFixed(3)}:${data.radiusM}`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const cached = await supabaseAdmin
@@ -138,7 +173,26 @@ export const nearbyForLift = createServerFn({ method: "POST" })
       };
     }
 
-    const places = mapPlaces(await response.json());
+    // Ordiniamo per reputazione reale: prima le strutture con voti e recensioni.
+    const raw = mapPlaces(await response.json()).sort((a, b) => {
+      const score = (p: typeof a) =>
+        (p.rating ?? 0) * Math.log10((p.userRatingCount ?? 0) + 1) + (p.photoName ? 0.5 : 0);
+      return score(b) - score(a);
+    });
+
+    // Foto reali: risolviamo l'URL pubblico solo per i primi risultati mostrati.
+    const withPhotos = await Promise.all(
+      raw.slice(0, 12).map(async ({ photoName, ...place }) => ({
+        ...place,
+        photoUrl: photoName ? await resolvePhoto(photoName) : null,
+      })),
+    );
+    const places: NearbyPlace[] = [
+      ...withPhotos,
+      ...raw.slice(12).map(({ photoName: _photoName, ...place }) => place),
+    ];
+
+
 
     await supabaseAdmin.from("resort_cache").upsert(
       {
@@ -149,7 +203,9 @@ export const nearbyForLift = createServerFn({ method: "POST" })
         lng: data.lng,
         radius_m: data.radiusM,
         payload: places as unknown as never,
-        expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+        // Gli URL foto di Google scadono: teniamo la cache a 24 ore.
+        expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+
       },
       { onConflict: "cache_key" },
     );

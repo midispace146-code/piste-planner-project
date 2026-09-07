@@ -2,11 +2,13 @@ import {
   BedDouble,
   CalendarRange,
   ExternalLink,
+  Gauge,
   MapPin,
   Mountain,
   Star,
   Store,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { bookingUrl, placeUrl } from "@/lib/ski/booking";
+import { RESORT_CATALOG, RESORT_LIFT_STATUS } from "@/lib/ski/catalog";
+import { resortSeason } from "@/lib/ski/season";
 
 export interface ItineraryRowLike {
   id: string;
@@ -34,21 +39,20 @@ export interface ItineraryRowLike {
   rental_place_id: string;
 }
 
-/** Link diretto alla scheda Google Maps del luogo (prenotazione/contatti). */
-function placeLink(name: string, placeId: string, address: string | null): string {
-  const query = encodeURIComponent([name, address].filter(Boolean).join(" "));
-  return placeId
-    ? `https://www.google.com/maps/search/?api=1&query=${query}&query_place_id=${encodeURIComponent(placeId)}`
-    : `https://www.google.com/maps/search/?api=1&query=${query}`;
-}
-
-function bookingLink(name: string, address: string | null): string {
-  const query = encodeURIComponent([name, address].filter(Boolean).join(" "));
-  return `https://www.booking.com/searchresults.it.html?ss=${query}`;
-}
-
 const it = (iso: string) => new Date(iso).toLocaleDateString("it-IT");
 const asNumber = (v: number | string | null) => (v === null ? null : Number(v));
+
+/** Dati reali del comprensorio salvato (impianti, piste, stagionalità). */
+function resortInfo(name: string) {
+  const target = name.trim().toLowerCase();
+  const resort =
+    RESORT_CATALOG.find((r) => r.name.toLowerCase() === target) ??
+    RESORT_CATALOG.find((r) => r.name.toLowerCase().includes(target));
+  if (!resort) return null;
+  const lifts = RESORT_LIFT_STATUS.get(resort.id);
+  return { resort, lifts, season: resortSeason(resort) };
+}
+
 
 export function ItineraryDetailDialog({
   itinerary,
@@ -57,6 +61,8 @@ export function ItineraryDetailDialog({
   itinerary: ItineraryRowLike | null;
   onClose: () => void;
 }) {
+  const info = itinerary ? resortInfo(itinerary.resort_name) : null;
+
   return (
     <Dialog open={Boolean(itinerary)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[85vh] max-w-lg overflow-auto">
@@ -92,6 +98,32 @@ export function ItineraryDetailDialog({
               </a>
             </section>
 
+
+            {info && (
+              <section className="mt-3 rounded-xl border border-border p-4">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Gauge className="h-4 w-4 text-primary" /> Efficienza del comprensorio
+                </h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Badge variant={info.season.open ? "secondary" : "outline"}>
+                    {info.season.badge}
+                  </Badge>
+                  {info.lifts && (
+                    <Badge variant="outline">
+                      Impianti {info.lifts.open}/{info.lifts.total}
+                    </Badge>
+                  )}
+                  {info.resort.total_ski_km > 0 && (
+                    <Badge variant="outline">{info.resort.total_ski_km} km di piste</Badge>
+                  )}
+                  <Badge variant="outline">Quota {info.resort.altitude} m</Badge>
+                </div>
+                {!info.season.open && (
+                  <p className="mt-2 text-sm text-muted-foreground">{info.season.message}</p>
+                )}
+              </section>
+            )}
+
             <section className="mt-3 rounded-xl border border-border p-4">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <BedDouble className="h-4 w-4 text-primary" /> Hotel selezionato
@@ -109,7 +141,12 @@ export function ItineraryDetailDialog({
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button asChild size="sm">
                   <a
-                    href={bookingLink(itinerary.hotel_name, itinerary.hotel_address)}
+                    href={bookingUrl(
+                      itinerary.hotel_name,
+                      itinerary.hotel_address,
+                      itinerary.start_date,
+                      itinerary.end_date,
+                    )}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -118,7 +155,7 @@ export function ItineraryDetailDialog({
                 </Button>
                 <Button asChild size="sm" variant="secondary">
                   <a
-                    href={placeLink(
+                    href={placeUrl(
                       itinerary.hotel_name,
                       itinerary.hotel_place_id,
                       itinerary.hotel_address,
@@ -148,7 +185,7 @@ export function ItineraryDetailDialog({
               )}
               <Button asChild size="sm" className="mt-3">
                 <a
-                  href={placeLink(
+                  href={placeUrl(
                     itinerary.rental_name,
                     itinerary.rental_place_id,
                     itinerary.rental_address,

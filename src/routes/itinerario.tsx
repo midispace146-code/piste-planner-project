@@ -46,7 +46,7 @@ export const Route = createFileRoute("/itinerario")({
       },
     ],
   }),
-  component: HomePage,
+  component: () => <ItineraryForm />,
 });
 
 const FUELS: Array<{ id: FuelType; label: string; unit: string; defaultPrice: number }> = [
@@ -80,7 +80,7 @@ const WEATHER_WEIGHT_LABELS: Record<number, string> = {
   5: "Il bel tempo e la neve sicura vengono prima di tutto",
 };
 
-function HomePage() {
+export function ItineraryForm({ targetResort }: { targetResort?: string }) {
   const navigate = useNavigate();
   const findPlaces = useServerFn(searchPlaces);
   const findAddress = useServerFn(reverseGeocode);
@@ -187,6 +187,7 @@ function HomePage() {
         returnTime,
         hotel,
         hotelCategory,
+        ...(targetResort ? { targetResort } : {}),
       },
     });
   };

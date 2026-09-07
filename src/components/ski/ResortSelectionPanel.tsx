@@ -1,18 +1,10 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  BedDouble,
-  CheckCircle2,
-  Loader2,
-  MapPin,
-  Plus,
-  Star,
-  Store,
-} from "lucide-react";
+import { ArrowLeft, BedDouble, CheckCircle2, Loader2, MapPin, Plus, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { PlaceRow } from "./PlaceRow";
 import {
   nearbyForLift,
   saveItinerary,
@@ -163,20 +155,26 @@ export function ResortSelectionPanel({
       )}
 
       {!loading && (
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <PlaceList
-            title="Dove dormire"
+        <div className="mt-4 space-y-6">
+          <PlaceRow
+            title="Dove Dormire"
             icon={<BedDouble className="h-4 w-4 text-primary" />}
+            kind="hotel"
             places={hotels}
             selected={hotel}
             onSelect={setHotel}
+            startDate={startDate}
+            endDate={endDate}
           />
-          <PlaceList
-            title="Dove noleggiare l'attrezzatura"
+          <PlaceRow
+            title="Dove Noleggiare"
             icon={<Store className="h-4 w-4 text-primary" />}
+            kind="rental"
             places={rentals}
             selected={rental}
             onSelect={setRental}
+            startDate={startDate}
+            endDate={endDate}
           />
         </div>
       )}
@@ -227,53 +225,3 @@ export function ResortSelectionPanel({
   );
 }
 
-function PlaceList({
-  title,
-  icon,
-  places,
-  selected,
-  onSelect,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  places: NearbyPlace[];
-  selected: NearbyPlace | null;
-  onSelect: (place: NearbyPlace) => void;
-}) {
-  return (
-    <div className="rounded-xl border border-border p-4">
-      <div className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
-        {icon}
-        {title}
-      </div>
-      {places.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">Nessun risultato nelle vicinanze.</p>
-      ) : (
-        <ul className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
-          {places.map((place) => (
-            <li key={place.placeId}>
-              <button
-                type="button"
-                onClick={() => onSelect(place)}
-                className={`w-full rounded-lg border p-3 text-left transition-colors ${
-                  selected?.placeId === place.placeId
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:bg-accent"
-                }`}
-              >
-                <span className="block text-sm font-medium text-foreground">{place.name}</span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">{place.address}</span>
-                {place.rating !== null && (
-                  <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    <Star className="h-3 w-3 fill-current text-primary" />
-                    {place.rating.toFixed(1)}
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}

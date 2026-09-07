@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CreaItinerarioRouteImport } from './routes/crea-itinerario'
+import { Route as EsploraRouteImport } from './routes/esplora'
 import { Route as ItinerarioRouteImport } from './routes/itinerario'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as RisultatiRouteImport } from './routes/risultati'
@@ -24,6 +26,16 @@ const IndexRoute = IndexRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreaItinerarioRoute = CreaItinerarioRouteImport.update({
+  id: '/crea-itinerario',
+  path: '/crea-itinerario',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsploraRoute = EsploraRouteImport.update({
+  id: '/esplora',
+  path: '/esplora',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItinerarioRoute = ItinerarioRouteImport.update({
@@ -50,6 +62,8 @@ const ApiItinerariesRoute = ApiItinerariesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/crea-itinerario': typeof CreaItinerarioRoute
+  '/esplora': typeof EsploraRoute
   '/itinerario': typeof ItinerarioRoute
   '/profilo': typeof ProfiloRoute
   '/risultati': typeof RisultatiRoute
@@ -58,6 +72,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/crea-itinerario': typeof CreaItinerarioRoute
+  '/esplora': typeof EsploraRoute
   '/itinerario': typeof ItinerarioRoute
   '/profilo': typeof ProfiloRoute
   '/risultati': typeof RisultatiRoute
@@ -67,6 +83,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/crea-itinerario': typeof CreaItinerarioRoute
+  '/esplora': typeof EsploraRoute
   '/itinerario': typeof ItinerarioRoute
   '/profilo': typeof ProfiloRoute
   '/risultati': typeof RisultatiRoute
@@ -77,6 +95,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/crea-itinerario'
+    | '/esplora'
     | '/itinerario'
     | '/profilo'
     | '/risultati'
@@ -85,6 +105,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/crea-itinerario'
+    | '/esplora'
     | '/itinerario'
     | '/profilo'
     | '/risultati'
@@ -93,6 +115,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/crea-itinerario'
+    | '/esplora'
     | '/itinerario'
     | '/profilo'
     | '/risultati'
@@ -102,6 +126,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  CreaItinerarioRoute: typeof CreaItinerarioRoute
+  EsploraRoute: typeof EsploraRoute
   ItinerarioRoute: typeof ItinerarioRoute
   ProfiloRoute: typeof ProfiloRoute
   RisultatiRoute: typeof RisultatiRoute
@@ -122,6 +148,20 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crea-itinerario': {
+      id: '/crea-itinerario'
+      path: '/crea-itinerario'
+      fullPath: '/crea-itinerario'
+      preLoaderRoute: typeof CreaItinerarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/esplora': {
+      id: '/esplora'
+      path: '/esplora'
+      fullPath: '/esplora'
+      preLoaderRoute: typeof EsploraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/itinerario': {
@@ -158,6 +198,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  CreaItinerarioRoute: CreaItinerarioRoute,
+  EsploraRoute: EsploraRoute,
   ItinerarioRoute: ItinerarioRoute,
   ProfiloRoute: ProfiloRoute,
   RisultatiRoute: RisultatiRoute,
