@@ -60,6 +60,8 @@ export function ItineraryDetailDialog({
   itinerary: ItineraryRowLike | null;
   onClose: () => void;
 }) {
+  const info = itinerary ? resortInfo(itinerary.resort_name) : null;
+
   return (
     <Dialog open={Boolean(itinerary)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[85vh] max-w-lg overflow-auto">
