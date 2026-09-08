@@ -268,6 +268,34 @@ export function buildCatalog(): Resort[] {
 /** Catalogo pre-costruito (singleton). */
 export const RESORT_CATALOG: Resort[] = buildCatalog();
 
+/**
+ * Impianti della località: i comprensori curati possono avere un id diverso
+ * dallo slug del dataset, quindi ripieghiamo sul confronto per nome.
+ */
+export function liftsForResort(resort: Resort): LiftDetail[] {
+  const direct = RESORT_LIFTS.get(resort.id);
+  if (direct && direct.length > 0) return direct;
+  const target = normalizeName(resort.name);
+  for (const [slug, lifts] of RESORT_LIFTS) {
+    const name = normalizeName(slug.replace(/-/g, " "));
+    if (name === target || name.startsWith(target) || target.startsWith(name)) return lifts;
+  }
+  return [];
+}
+
+/** Impianti aperti/totali coerenti con resort.total_lifts. */
+export function liftStatusForResort(resort: Resort): { open: number; total: number } {
+  const direct = RESORT_LIFT_STATUS.get(resort.id);
+  if (direct) return direct;
+  const lifts = liftsForResort(resort);
+  const active = lifts.filter((l) => l.active).length;
+  return {
+    open: lifts.length > 0 ? Math.min(active, resort.total_lifts) : resort.total_lifts,
+    total: resort.total_lifts,
+  };
+}
+
+
 /** Regioni disponibili nel catalogo completo. */
 export const CATALOG_REGIONS: string[] = Array.from(
   new Set(RESORT_CATALOG.map((r) => r.region)),
