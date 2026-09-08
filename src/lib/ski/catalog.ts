@@ -244,7 +244,14 @@ export function buildCatalog(): Resort[] {
 
     resorts.push(resort);
     RESORT_LIFT_NAMES.set(resort.id, agg.liftNames);
-    RESORT_LIFT_STATUS.set(resort.id, { open: agg.active, total: agg.count });
+    RESORT_LIFTS.set(resort.id, agg.lifts);
+    // Il totale mostrato è SEMPRE resort.total_lifts: nessun disallineamento
+    // fra card della lista e vista dettaglio.
+    RESORT_LIFT_STATUS.set(resort.id, {
+      open: Math.min(agg.active, resort.total_lifts),
+      total: resort.total_lifts,
+    });
+
   }
 
 
