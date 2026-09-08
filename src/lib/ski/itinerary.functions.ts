@@ -33,6 +33,11 @@ export const searchLifts = createServerFn({ method: "POST" })
     return { lifts: findLifts(data.query) };
   });
 
+/** Google Places è configurato per questo progetto? */
+function placesConfigured(): boolean {
+  return Boolean(process.env["LOVABLE_API_KEY"] && process.env["GOOGLE_MAPS_API_KEY"]);
+}
+
 function gatewayHeaders(fieldMask: string) {
   const lovableKey = process.env["LOVABLE_API_KEY"];
   const mapsKey = process.env["GOOGLE_MAPS_API_KEY"];
@@ -47,7 +52,8 @@ function gatewayHeaders(fieldMask: string) {
 
 const FIELD_MASK =
   "places.id,places.displayName,places.rating,places.userRatingCount,places.formattedAddress," +
-  "places.location,places.photos,places.priceLevel,places.websiteUri";
+  "places.location,places.photos,places.priceLevel,places.websiteUri,places.types," +
+  "places.primaryType,places.primaryTypeDisplayName,places.editorialSummary";
 
 interface RawPlace {
   id: string;
@@ -59,12 +65,75 @@ interface RawPlace {
   photos?: Array<{ name?: string }>;
   priceLevel?: string;
   websiteUri?: string;
+  types?: string[];
+  primaryType?: string;
+  primaryTypeDisplayName?: { text?: string };
+  editorialSummary?: { text?: string };
 }
 
-function mapPlaces(json: unknown): Array<NearbyPlace & { photoName: string | null }> {
+/** Tipi Google ammessi come alloggio. */
+const LODGING_PRIMARY = new Set([
+  "hotel",
+  "lodging",
+  "guest_house",
+  "bed_and_breakfast",
+  "resort_hotel",
+  "motel",
+  "extended_stay_hotel",
+  "cottage",
+  "farmstay",
+  "inn",
+  "hostel",
+]);
+
+/** Tipi da scartare: ristorazione e locali. */
+const FOOD_TYPES = new Set([
+  "restaurant",
+  "bakery",
+  "food",
+  "cafe",
+  "coffee_shop",
+  "bar",
+  "meal_takeaway",
+  "meal_delivery",
+  "fast_food_restaurant",
+]);
+
+/** Alloggi: solo strutture ricettive confermate da Google. */
+function isLodging(p: RawPlace): boolean {
+  const types = p.types ?? [];
+  const primary = p.primaryType ?? "";
+  if (LODGING_PRIMARY.has(primary)) return true;
+  const hasFood = types.some((t) => FOOD_TYPES.has(t));
+  if (hasFood) return false;
+  return types.some((t) => LODGING_PRIMARY.has(t));
+}
+
+const SKI_WORDS = ["ski", "sci", "snowboard", "noleggio sci", "ski rent", "rent"];
+
+/** Noleggi: solo negozi il cui nome/descrizione parla davvero di sci. */
+function isSkiRental(p: RawPlace): boolean {
+  const haystack = [
+    p.displayName?.text,
+    p.editorialSummary?.text,
+    p.primaryTypeDisplayName?.text,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (!haystack) return false;
+  if ((p.types ?? []).some((t) => FOOD_TYPES.has(t))) return false;
+  return SKI_WORDS.some((w) => haystack.includes(w));
+}
+
+function mapPlaces(
+  json: unknown,
+  kind: "hotel" | "rental",
+): Array<NearbyPlace & { photoName: string | null }> {
   const list = (json as { places?: RawPlace[] }).places;
   return (list ?? [])
     .filter((p) => p.location)
+    .filter((p) => (kind === "hotel" ? isLodging(p) : isSkiRental(p)))
     .map((p) => ({
       provider: "google_places",
       placeId: p.id,
