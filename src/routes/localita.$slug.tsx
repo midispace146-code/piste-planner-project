@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button";
 import { NewsList, type NewsItem } from "@/components/ski/NewsList";
 import { WeatherWidget } from "@/components/ski/WeatherWidget";
 import { WebcamPanel } from "@/components/ski/WebcamPanel";
-import { RESORT_CATALOG, RESORT_LIFTS, RESORT_LIFT_STATUS, normalizeName } from "@/lib/ski/catalog";
+import {
+  RESORT_CATALOG,
+  liftStatusForResort,
+  liftsForResort,
+  normalizeName,
+} from "@/lib/ski/catalog";
 import { fetchSkiNews } from "@/lib/ski/news.functions";
 import { resortSeason } from "@/lib/ski/season";
 
@@ -70,8 +75,8 @@ function LocalityPage() {
   }
 
   const season = resortSeason(resort);
-  const status = RESORT_LIFT_STATUS.get(resort.id);
-  const lifts = RESORT_LIFTS.get(resort.id) ?? [];
+  const status = liftStatusForResort(resort);
+  const lifts = liftsForResort(resort);
 
   return (
     <main className="min-h-screen bg-background">
@@ -103,7 +108,7 @@ function LocalityPage() {
             <Badge variant="outline" className="gap-1">
               <CableCar className="h-3.5 w-3.5" />
               {season.open
-                ? `${status?.open ?? resort.liftsCount}/${resort.total_lifts} impianti aperti`
+                ? `${status.open}/${resort.total_lifts} impianti aperti`
                 : `${resort.total_lifts} impianti`}
             </Badge>
           </div>

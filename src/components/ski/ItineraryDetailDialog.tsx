@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { directionsUrl, placeUrl } from "@/lib/ski/places";
-import { RESORT_CATALOG, RESORT_LIFT_STATUS } from "@/lib/ski/catalog";
+import { RESORT_CATALOG, liftStatusForResort } from "@/lib/ski/catalog";
 import { seasonForRange } from "@/lib/ski/season";
 
 export interface ItineraryRowLike {
@@ -49,7 +49,7 @@ function resortInfo(name: string, startDate: string, endDate: string) {
     RESORT_CATALOG.find((r) => r.name.toLowerCase() === target) ??
     RESORT_CATALOG.find((r) => r.name.toLowerCase().includes(target));
   if (!resort) return null;
-  const lifts = RESORT_LIFT_STATUS.get(resort.id);
+  const lifts = liftStatusForResort(resort);
   return { resort, lifts, season: seasonForRange(resort, startDate, endDate) };
 }
 
