@@ -19,6 +19,7 @@ import { computeDrives } from "@/lib/ski/maps.functions";
 import { estimateRoadKm } from "@/lib/ski/geo";
 import { rankResorts } from "@/lib/ski/scoring";
 import { departureIso } from "@/lib/ski/traffic";
+import { isResortOpen, seasonForRange } from "@/lib/ski/season";
 import type { DriveInfo, Resort, SearchInput } from "@/lib/ski/types";
 
 const searchSchema = z.object({
@@ -166,9 +167,10 @@ function ResultsPage() {
   }
 
   const rankedAll = useMemo(
-    () => rankResorts(RESORT_CATALOG, input, drives),
-    [input, drives],
+    () => rankResorts(openCatalog, input, drives),
+    [openCatalog, input, drives],
   );
+
 
   // Il comprensorio scelto dall'utente viene fissato al primo posto,
   // senza togliere il confronto con gli altri risultati.
@@ -212,7 +214,7 @@ function ResultsPage() {
               ? "con pernottamento in hotel (parcheggio incluso nell'alloggio)"
               : `gita giornaliera · parcheggio entro ${search.parkingRadiusM} m`}
             {search.maxBudget > 0 ? ` · budget max ${search.maxBudget} €` : ""} ·{" "}
-            {RESORT_CATALOG.length} comprensori confrontati
+            {openCatalog.length} comprensori aperti nelle date scelte
           </p>
         </div>
       </header>
@@ -242,6 +244,9 @@ function ResultsPage() {
                 maxBudget={search.maxBudget}
                 selectable
                 pinned={result.resort.id === search.targetResort}
+                seasonBadge={
+                  seasonForRange(result.resort, search.startDate, endDate).badge
+                }
                 selected={isSelected}
                 onSelect={() => setSelectedId(result.resort.id)}
               >
@@ -249,7 +254,7 @@ function ResultsPage() {
                   <ResortSelectionPanel
                     resort={selectedResort}
                     startDate={search.startDate}
-                    endDate={addDays(search.startDate, search.days - 1)}
+                    endDate={endDate}
                     days={search.days}
                     radiusM={search.parkingRadiusM}
                     onBack={() => setSelectedId(null)}
@@ -285,7 +290,7 @@ function ResultsPage() {
               <DialogDescription>Cosa vuoi fare adesso?</DialogDescription>
             </DialogHeader>
             <div className="mt-2 flex flex-col gap-2">
-              <Button onClick={() => navigate({ to: "/" })}>Torna a esplorare</Button>
+              <Button onClick={() => navigate({ to: "/esplora" })}>Torna a esplorare</Button>
               <Button
                 variant="secondary"
                 onClick={() => {
