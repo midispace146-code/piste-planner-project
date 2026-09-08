@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  CalendarClock,
   Check,
   Clock,
   Euro,
@@ -42,6 +43,8 @@ interface Props {
   selectable?: boolean;
   /** Comprensorio scelto dall'utente e fissato in prima posizione. */
   pinned?: boolean;
+  /** Stato stagionale per le date scelte, mostrato come badge esplicito. */
+  seasonBadge?: string;
   selected?: boolean;
   onSelect?: () => void;
   /** Sezione "Hotel e noleggi consigliati": compare solo per la scheda selezionata. */
@@ -60,6 +63,7 @@ export function ResortResultCard({
   maxBudget,
   selectable,
   pinned,
+  seasonBadge,
   selected,
   onSelect,
   children,
@@ -97,10 +101,17 @@ export function ResortResultCard({
           </p>
           <p className="mt-1 text-xs text-muted-foreground">Traffico: {result.trafficLabel}</p>
           <div className="mt-3 flex flex-wrap gap-2">
+            {seasonBadge && (
+              <Badge variant="secondary" className="gap-1">
+                <CalendarClock className="h-3.5 w-3.5" />
+                {seasonBadge}
+              </Badge>
+            )}
             <Badge variant="secondary" className="gap-1">
               <Mountain className="h-3.5 w-3.5" />
               {resort.total_ski_km} km di piste
             </Badge>
+
             <Badge variant="secondary" className="gap-1">
               <RouteIcon className="h-3.5 w-3.5" />
               {resort.total_lifts} impianti · {resort.modern_lifts_percentage}% veloci

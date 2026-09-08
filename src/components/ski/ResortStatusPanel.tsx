@@ -1,6 +1,6 @@
 import { CableCar, CalendarClock, Mountain, Snowflake } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { RESORT_LIFT_STATUS } from "@/lib/ski/catalog";
+import { liftStatusForResort } from "@/lib/ski/catalog";
 import { resortSeason } from "@/lib/ski/season";
 import { WeatherWidget } from "./WeatherWidget";
 import { WebcamPanel } from "./WebcamPanel";
@@ -19,7 +19,7 @@ interface Props {
  */
 export function ResortStatusPanel({ resort, snowReport, openingHours }: Props) {
   const season = resortSeason(resort);
-  const lifts = RESORT_LIFT_STATUS.get(resort.id);
+  const lifts = liftStatusForResort(resort);
 
   return (
     <div className="space-y-4">

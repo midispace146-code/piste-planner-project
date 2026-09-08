@@ -209,10 +209,10 @@ export function ExploreScreen() {
           {shown.map((r) => {
             const extra = extras.get(r.id);
             return (
-              <button
+              <Link
                 key={r.id}
-                type="button"
-                onClick={() => setSelected(r)}
+                to="/localita/$slug"
+                params={{ slug: r.id }}
                 className="rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:bg-accent"
               >
                 <div className="flex min-w-0 items-center gap-2">
@@ -223,11 +223,7 @@ export function ExploreScreen() {
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                   <div>
                     <dt>Impianti</dt>
-                    <dd className="font-semibold text-foreground">
-                      {extra?.open_slopes_count !== undefined && extra.total_slopes_count !== undefined
-                        ? `${extra.open_slopes_count}/${extra.total_slopes_count} piste`
-                        : `${r.total_lifts}`}
-                    </dd>
+                    <dd className="font-semibold text-foreground">{r.total_lifts}</dd>
                   </div>
                   <div>
                     <dt>Km piste</dt>
@@ -246,7 +242,7 @@ export function ExploreScreen() {
                     </dd>
                   </div>
                 </dl>
-              </button>
+              </Link>
             );
           })}
           {filtered.length === 0 && (
@@ -255,6 +251,7 @@ export function ExploreScreen() {
             </p>
           )}
         </div>
+
 
         {hasMore && (
           <div className="mt-6 flex justify-center">

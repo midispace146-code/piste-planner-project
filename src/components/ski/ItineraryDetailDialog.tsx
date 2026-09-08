@@ -17,9 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { bookingUrl, placeUrl } from "@/lib/ski/booking";
-import { RESORT_CATALOG, RESORT_LIFT_STATUS } from "@/lib/ski/catalog";
-import { resortSeason } from "@/lib/ski/season";
+import { directionsUrl, placeUrl } from "@/lib/ski/places";
+import { RESORT_CATALOG, liftStatusForResort } from "@/lib/ski/catalog";
+import { seasonForRange } from "@/lib/ski/season";
 
 export interface ItineraryRowLike {
   id: string;
@@ -43,14 +43,14 @@ const it = (iso: string) => new Date(iso).toLocaleDateString("it-IT");
 const asNumber = (v: number | string | null) => (v === null ? null : Number(v));
 
 /** Dati reali del comprensorio salvato (impianti, piste, stagionalità). */
-function resortInfo(name: string) {
+function resortInfo(name: string, startDate: string, endDate: string) {
   const target = name.trim().toLowerCase();
   const resort =
     RESORT_CATALOG.find((r) => r.name.toLowerCase() === target) ??
     RESORT_CATALOG.find((r) => r.name.toLowerCase().includes(target));
   if (!resort) return null;
-  const lifts = RESORT_LIFT_STATUS.get(resort.id);
-  return { resort, lifts, season: resortSeason(resort) };
+  const lifts = liftStatusForResort(resort);
+  return { resort, lifts, season: seasonForRange(resort, startDate, endDate) };
 }
 
 
@@ -61,7 +61,9 @@ export function ItineraryDetailDialog({
   itinerary: ItineraryRowLike | null;
   onClose: () => void;
 }) {
-  const info = itinerary ? resortInfo(itinerary.resort_name) : null;
+  const info = itinerary
+    ? resortInfo(itinerary.resort_name, itinerary.start_date, itinerary.end_date)
+    : null;
 
   return (
     <Dialog open={Boolean(itinerary)} onOpenChange={(open) => !open && onClose()}>
@@ -141,20 +143,6 @@ export function ItineraryDetailDialog({
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button asChild size="sm">
                   <a
-                    href={bookingUrl(
-                      itinerary.hotel_name,
-                      itinerary.hotel_address,
-                      itinerary.start_date,
-                      itinerary.end_date,
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Prenota la struttura <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-                  </a>
-                </Button>
-                <Button asChild size="sm" variant="secondary">
-                  <a
                     href={placeUrl(
                       itinerary.hotel_name,
                       itinerary.hotel_place_id,
@@ -163,11 +151,25 @@ export function ItineraryDetailDialog({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Scheda e contatti
+                    Scheda Google Places <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                  </a>
+                </Button>
+                <Button asChild size="sm" variant="secondary">
+                  <a
+                    href={directionsUrl(
+                      itinerary.hotel_name,
+                      itinerary.hotel_place_id,
+                      itinerary.hotel_address,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Indicazioni stradali
                   </a>
                 </Button>
               </div>
             </section>
+
 
             <section className="mt-3 rounded-xl border border-border p-4">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -183,19 +185,35 @@ export function ItineraryDetailDialog({
               {itinerary.rental_address && (
                 <p className="mt-1 text-sm text-muted-foreground">{itinerary.rental_address}</p>
               )}
-              <Button asChild size="sm" className="mt-3">
-                <a
-                  href={placeUrl(
-                    itinerary.rental_name,
-                    itinerary.rental_place_id,
-                    itinerary.rental_address,
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Prenota l'attrezzatura <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-                </a>
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild size="sm">
+                  <a
+                    href={placeUrl(
+                      itinerary.rental_name,
+                      itinerary.rental_place_id,
+                      itinerary.rental_address,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Scheda Google Places <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                  </a>
+                </Button>
+                <Button asChild size="sm" variant="secondary">
+                  <a
+                    href={directionsUrl(
+                      itinerary.rental_name,
+                      itinerary.rental_place_id,
+                      itinerary.rental_address,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Indicazioni stradali
+                  </a>
+                </Button>
+              </div>
+
             </section>
           </>
         )}

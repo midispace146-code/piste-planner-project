@@ -81,6 +81,17 @@ function guessRegion(lat: number, lng: number): string {
   return "Italia";
 }
 
+/** Dettaglio impianto usato dalla vista località. */
+export interface LiftDetail {
+  id: number;
+  name: string;
+  type: string | null;
+  active: boolean;
+  lengthM: number | null;
+  dropM: number | null;
+  detachable: boolean;
+}
+
 interface Agg {
   name: string;
   slug: string;
@@ -93,7 +104,9 @@ interface Agg {
   eles: number[];
   drops: number[];
   liftNames: string[];
+  lifts: LiftDetail[];
 }
+
 
 function coordOf(lift: LiftRaw): LiftBase | null {
   const b = lift.base;
@@ -112,6 +125,9 @@ export const RESORT_LIFT_NAMES = new Map<string, string[]>();
 
 /** Impianti aperti/totali per comprensorio (widget stato impianti). */
 export const RESORT_LIFT_STATUS = new Map<string, { open: number; total: number }>();
+
+/** Elenco dettagliato degli impianti per comprensorio (vista località). */
+export const RESORT_LIFTS = new Map<string, LiftDetail[]>();
 
 
 /** Costruisce l'elenco completo dei comprensori dal dataset impianti-italia.json. */
@@ -136,6 +152,7 @@ export function buildCatalog(): Resort[] {
         eles: [],
         drops: [],
         liftNames: [],
+        lifts: [],
       };
       groups.set(slug, agg);
     }
@@ -143,6 +160,15 @@ export function buildCatalog(): Resort[] {
     if (lift.active) agg.active += 1;
     if (lift.detachable) agg.detachable += 1;
     if (lift.name) agg.liftNames.push(lift.name);
+    agg.lifts.push({
+      id: lift.id,
+      name: lift.name ?? "Impianto senza nome",
+      type: lift.type,
+      active: lift.active !== false,
+      lengthM: lift.length_m,
+      dropM: lift.drop_m,
+      detachable: Boolean(lift.detachable),
+    });
     if (lift.resort_km) agg.km = Math.max(agg.km, lift.resort_km);
     const c = coordOf(lift);
     if (c) {
@@ -152,6 +178,7 @@ export function buildCatalog(): Resort[] {
     }
     if (lift.drop_m) agg.drops.push(lift.drop_m);
   }
+
 
   const resorts: Resort[] = [];
   for (const agg of groups.values()) {
@@ -217,7 +244,14 @@ export function buildCatalog(): Resort[] {
 
     resorts.push(resort);
     RESORT_LIFT_NAMES.set(resort.id, agg.liftNames);
-    RESORT_LIFT_STATUS.set(resort.id, { open: agg.active, total: agg.count });
+    RESORT_LIFTS.set(resort.id, agg.lifts);
+    // Il totale mostrato è SEMPRE resort.total_lifts: nessun disallineamento
+    // fra card della lista e vista dettaglio.
+    RESORT_LIFT_STATUS.set(resort.id, {
+      open: Math.min(agg.active, resort.total_lifts),
+      total: resort.total_lifts,
+    });
+
   }
 
 
@@ -233,6 +267,34 @@ export function buildCatalog(): Resort[] {
 
 /** Catalogo pre-costruito (singleton). */
 export const RESORT_CATALOG: Resort[] = buildCatalog();
+
+/**
+ * Impianti della località: i comprensori curati possono avere un id diverso
+ * dallo slug del dataset, quindi ripieghiamo sul confronto per nome.
+ */
+export function liftsForResort(resort: Resort): LiftDetail[] {
+  const direct = RESORT_LIFTS.get(resort.id);
+  if (direct && direct.length > 0) return direct;
+  const target = normalizeName(resort.name);
+  for (const [slug, lifts] of RESORT_LIFTS) {
+    const name = normalizeName(slug.replace(/-/g, " "));
+    if (name === target || name.startsWith(target) || target.startsWith(name)) return lifts;
+  }
+  return [];
+}
+
+/** Impianti aperti/totali coerenti con resort.total_lifts. */
+export function liftStatusForResort(resort: Resort): { open: number; total: number } {
+  const direct = RESORT_LIFT_STATUS.get(resort.id);
+  if (direct) return direct;
+  const lifts = liftsForResort(resort);
+  const active = lifts.filter((l) => l.active).length;
+  return {
+    open: lifts.length > 0 ? Math.min(active, resort.total_lifts) : resort.total_lifts,
+    total: resort.total_lifts,
+  };
+}
+
 
 /** Regioni disponibili nel catalogo completo. */
 export const CATALOG_REGIONS: string[] = Array.from(

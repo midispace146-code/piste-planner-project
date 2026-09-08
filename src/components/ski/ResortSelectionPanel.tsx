@@ -159,23 +159,18 @@ export function ResortSelectionPanel({
           <PlaceRow
             title="Dove Dormire"
             icon={<BedDouble className="h-4 w-4 text-primary" />}
-            kind="hotel"
             places={hotels}
             selected={hotel}
             onSelect={setHotel}
-            startDate={startDate}
-            endDate={endDate}
           />
           <PlaceRow
             title="Dove Noleggiare"
             icon={<Store className="h-4 w-4 text-primary" />}
-            kind="rental"
             places={rentals}
             selected={rental}
             onSelect={setRental}
-            startDate={startDate}
-            endDate={endDate}
           />
+
         </div>
       )}
 

@@ -17,6 +17,7 @@ import { Route as ItinerarioRouteImport } from './routes/itinerario'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as RisultatiRouteImport } from './routes/risultati'
 import { Route as ApiItinerariesRouteImport } from './routes/api/itineraries'
+import { Route as LocalitaSlugRouteImport } from './routes/localita.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const ApiItinerariesRoute = ApiItinerariesRouteImport.update({
   path: '/api/itineraries',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LocalitaSlugRoute = LocalitaSlugRouteImport.update({
+  id: '/localita/$slug',
+  path: '/localita/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/profilo': typeof ProfiloRoute
   '/risultati': typeof RisultatiRoute
   '/api/itineraries': typeof ApiItinerariesRoute
+  '/localita/$slug': typeof LocalitaSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/profilo': typeof ProfiloRoute
   '/risultati': typeof RisultatiRoute
   '/api/itineraries': typeof ApiItinerariesRoute
+  '/localita/$slug': typeof LocalitaSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/profilo': typeof ProfiloRoute
   '/risultati': typeof RisultatiRoute
   '/api/itineraries': typeof ApiItinerariesRoute
+  '/localita/$slug': typeof LocalitaSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/profilo'
     | '/risultati'
     | '/api/itineraries'
+    | '/localita/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/profilo'
     | '/risultati'
     | '/api/itineraries'
+    | '/localita/$slug'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/profilo'
     | '/risultati'
     | '/api/itineraries'
+    | '/localita/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   ProfiloRoute: typeof ProfiloRoute
   RisultatiRoute: typeof RisultatiRoute
   ApiItinerariesRoute: typeof ApiItinerariesRoute
+  LocalitaSlugRoute: typeof LocalitaSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiItinerariesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/localita/$slug': {
+      id: '/localita/$slug'
+      path: '/localita/$slug'
+      fullPath: '/localita/$slug'
+      preLoaderRoute: typeof LocalitaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfiloRoute: ProfiloRoute,
   RisultatiRoute: RisultatiRoute,
   ApiItinerariesRoute: ApiItinerariesRoute,
+  LocalitaSlugRoute: LocalitaSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
