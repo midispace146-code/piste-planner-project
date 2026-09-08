@@ -42,6 +42,8 @@ interface Props {
   selectable?: boolean;
   /** Comprensorio scelto dall'utente e fissato in prima posizione. */
   pinned?: boolean;
+  /** Stato stagionale per le date scelte, mostrato come badge esplicito. */
+  seasonBadge?: string;
   selected?: boolean;
   onSelect?: () => void;
   /** Sezione "Hotel e noleggi consigliati": compare solo per la scheda selezionata. */
