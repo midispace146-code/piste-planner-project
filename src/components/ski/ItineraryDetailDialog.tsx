@@ -17,9 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { bookingUrl, placeUrl } from "@/lib/ski/booking";
+import { directionsUrl, placeUrl } from "@/lib/ski/places";
 import { RESORT_CATALOG, RESORT_LIFT_STATUS } from "@/lib/ski/catalog";
-import { resortSeason } from "@/lib/ski/season";
+import { seasonForRange } from "@/lib/ski/season";
 
 export interface ItineraryRowLike {
   id: string;
