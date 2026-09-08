@@ -126,6 +126,9 @@ export const RESORT_LIFT_NAMES = new Map<string, string[]>();
 /** Impianti aperti/totali per comprensorio (widget stato impianti). */
 export const RESORT_LIFT_STATUS = new Map<string, { open: number; total: number }>();
 
+/** Elenco dettagliato degli impianti per comprensorio (vista località). */
+export const RESORT_LIFTS = new Map<string, LiftDetail[]>();
+
 
 /** Costruisce l'elenco completo dei comprensori dal dataset impianti-italia.json. */
 export function buildCatalog(): Resort[] {
@@ -149,6 +152,7 @@ export function buildCatalog(): Resort[] {
         eles: [],
         drops: [],
         liftNames: [],
+        lifts: [],
       };
       groups.set(slug, agg);
     }
@@ -156,6 +160,15 @@ export function buildCatalog(): Resort[] {
     if (lift.active) agg.active += 1;
     if (lift.detachable) agg.detachable += 1;
     if (lift.name) agg.liftNames.push(lift.name);
+    agg.lifts.push({
+      id: lift.id,
+      name: lift.name ?? "Impianto senza nome",
+      type: lift.type,
+      active: lift.active !== false,
+      lengthM: lift.length_m,
+      dropM: lift.drop_m,
+      detachable: Boolean(lift.detachable),
+    });
     if (lift.resort_km) agg.km = Math.max(agg.km, lift.resort_km);
     const c = coordOf(lift);
     if (c) {
@@ -165,6 +178,7 @@ export function buildCatalog(): Resort[] {
     }
     if (lift.drop_m) agg.drops.push(lift.drop_m);
   }
+
 
   const resorts: Resort[] = [];
   for (const agg of groups.values()) {
