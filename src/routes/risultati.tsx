@@ -93,6 +93,13 @@ function ResultsPage() {
   const origin = { lat: search.originLat, lng: search.originLng };
 
   const departure = departureIso(search.startDate, search.departTime);
+  const endDate = addDays(search.startDate, search.days - 1);
+
+  // I comprensori chiusi nell'intervallo scelto sono esclusi dal confronto.
+  const openCatalog = useMemo(
+    () => RESORT_CATALOG.filter((r) => isResortOpen(r, { startDate: search.startDate, endDate })),
+    [search.startDate, endDate],
+  );
 
   const input: SearchInput = {
     originLabel: search.originLabel,
@@ -116,12 +123,13 @@ function ResultsPage() {
     hotelCategory: search.hotelCategory,
   };
 
-  // Fase A: ranking grezzo su TUTTO il catalogo con drive stimate.
+  // Fase A: ranking grezzo sui comprensori aperti con drive stimate.
   const estDrives = useMemo(() => estimatedDrives(origin), [origin]);
   const rankedEstimated = useMemo(
-    () => rankResorts(RESORT_CATALOG, input, estDrives),
-    [input, estDrives],
+    () => rankResorts(openCatalog, input, estDrives),
+    [openCatalog, input, estDrives],
   );
+
 
   // Refine Google Routes solo sui top 12 candidati.
   const topIds = useMemo(
