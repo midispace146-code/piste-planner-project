@@ -81,6 +81,17 @@ function guessRegion(lat: number, lng: number): string {
   return "Italia";
 }
 
+/** Dettaglio impianto usato dalla vista località. */
+export interface LiftDetail {
+  id: number;
+  name: string;
+  type: string | null;
+  active: boolean;
+  lengthM: number | null;
+  dropM: number | null;
+  detachable: boolean;
+}
+
 interface Agg {
   name: string;
   slug: string;
@@ -93,7 +104,9 @@ interface Agg {
   eles: number[];
   drops: number[];
   liftNames: string[];
+  lifts: LiftDetail[];
 }
+
 
 function coordOf(lift: LiftRaw): LiftBase | null {
   const b = lift.base;
