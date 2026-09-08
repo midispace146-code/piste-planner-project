@@ -78,48 +78,88 @@ function dayIndex(month: number, day: number): number {
   return month * 100 + day;
 }
 
-/**
- * Calendario di apertura: finestra invernale più ampia per l'alta quota,
- * apertura continuativa per i ghiacciai attivi.
- */
-export function resortSeason(resort: Resort, date: Date = new Date()): SeasonStatus {
+/** Finestra invernale indicativa del comprensorio (dal calendario stagionale). */
+function winterWindow(resort: Resort): { start: number; end: number; month: string } {
+  const top = Math.max(maxActiveTopElevation(resort), resort.altitude);
+  const highAltitude = top >= 2600;
+  const start = highAltitude ? dayIndex(10, 20) : dayIndex(11, 1);
+  const end = highAltitude ? dayIndex(4, 1) : dayIndex(3, 15);
+  return { start, end, month: MONTHS[Math.floor(start / 100)] ?? "Dicembre" };
+}
+
+function inWinter(resort: Resort, date: Date): boolean {
+  const { start, end } = winterWindow(resort);
+  const today = dayIndex(date.getMonth(), date.getDate());
+  return today >= start || today <= end;
+}
+
+const OPEN_WINTER = "Aperto - Stagione Invernale";
+const OPEN_SUMMER = "Aperto - Stagione Estiva";
+const CLOSED = "Chiuso - Pausa Stagionale / Manutenzione";
+
+function statusFor(resort: Resort, date: Date): SeasonStatus {
   const glacier = isGlacierResort(resort);
+  const winter = inWinter(resort, date);
+  const { month } = winterWindow(resort);
+
+  if (winter) {
+    return {
+      open: true,
+      glacier,
+      reopeningMonth: "",
+      badge: OPEN_WINTER,
+      message: "Comprensorio nel periodo di apertura invernale.",
+    };
+  }
+
   if (glacier) {
     return {
       open: true,
       glacier: true,
       reopeningMonth: "",
-      badge: "Ghiacciaio in attività",
+      badge: OPEN_SUMMER,
       message: "Sci su ghiacciaio: impianti in quota attivi anche fuori dalla stagione invernale.",
-    };
-  }
-
-  const top = Math.max(maxActiveTopElevation(resort), resort.altitude);
-  const highAltitude = top >= 2600;
-
-  // Finestre indicative: 20 nov – 1 mag in alta quota, 1 dic – 15 apr altrove.
-  const start = highAltitude ? dayIndex(10, 20) : dayIndex(11, 1);
-  const end = highAltitude ? dayIndex(4, 1) : dayIndex(3, 15);
-  const today = dayIndex(date.getMonth(), date.getDate());
-
-  const open = today >= start || today <= end;
-  const reopeningMonth = MONTHS[Math.floor(start / 100)] ?? "Dicembre";
-
-  if (open) {
-    return {
-      open: true,
-      glacier: false,
-      reopeningMonth: "",
-      badge: "Stagione in corso",
-      message: "Comprensorio nel periodo di apertura invernale.",
     };
   }
 
   return {
     open: false,
     glacier: false,
-    reopeningMonth,
-    badge: "Chiuso per pausa stagionale",
-    message: `Comprensorio chiuso per pausa stagionale - Apertura prevista a ${reopeningMonth}`,
+    reopeningMonth: month,
+    badge: CLOSED,
+    message: `Comprensorio chiuso per pausa stagionale - Apertura prevista a ${month}`,
   };
 }
+
+/** Stato stagionale per una singola data. */
+export function resortSeason(resort: Resort, date: Date = new Date()): SeasonStatus {
+  return statusFor(resort, date);
+}
+
+const parseIso = (iso: string) => new Date(`${iso}T12:00:00`);
+
+/**
+ * Stato stagionale valido per l'intero intervallo di viaggio: il comprensorio
+ * è considerato aperto solo se lo è sia il primo sia l'ultimo giorno.
+ */
+export function seasonForRange(
+  resort: Resort,
+  startDate?: string | null,
+  endDate?: string | null,
+): SeasonStatus {
+  if (!startDate) return statusFor(resort, new Date());
+  const start = statusFor(resort, parseIso(startDate));
+  if (!endDate || endDate === startDate) return start;
+  const end = statusFor(resort, parseIso(endDate));
+  if (start.open && end.open) return start;
+  return start.open ? end : start;
+}
+
+/** Il comprensorio è aperto per le date richieste? */
+export function isResortOpen(
+  resort: Resort,
+  dates?: { startDate?: string | null; endDate?: string | null },
+): boolean {
+  return seasonForRange(resort, dates?.startDate, dates?.endDate).open;
+}
+
