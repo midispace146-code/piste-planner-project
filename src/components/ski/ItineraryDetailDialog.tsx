@@ -185,19 +185,35 @@ export function ItineraryDetailDialog({
               {itinerary.rental_address && (
                 <p className="mt-1 text-sm text-muted-foreground">{itinerary.rental_address}</p>
               )}
-              <Button asChild size="sm" className="mt-3">
-                <a
-                  href={placeUrl(
-                    itinerary.rental_name,
-                    itinerary.rental_place_id,
-                    itinerary.rental_address,
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Prenota l'attrezzatura <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-                </a>
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild size="sm">
+                  <a
+                    href={placeUrl(
+                      itinerary.rental_name,
+                      itinerary.rental_place_id,
+                      itinerary.rental_address,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Scheda Google Places <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                  </a>
+                </Button>
+                <Button asChild size="sm" variant="secondary">
+                  <a
+                    href={directionsUrl(
+                      itinerary.rental_name,
+                      itinerary.rental_place_id,
+                      itinerary.rental_address,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Indicazioni stradali
+                  </a>
+                </Button>
+              </div>
+
             </section>
           </>
         )}
