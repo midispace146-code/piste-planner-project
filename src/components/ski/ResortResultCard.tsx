@@ -62,6 +62,7 @@ export function ResortResultCard({
   maxBudget,
   selectable,
   pinned,
+  seasonBadge,
   selected,
   onSelect,
   children,
