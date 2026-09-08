@@ -182,7 +182,15 @@ export const nearbyForLift = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const key = `google_places_v3:${data.kind}:${data.lat.toFixed(3)}:${data.lng.toFixed(3)}:${data.radiusM}`;
+    if (!placesConfigured()) {
+      return {
+        places: [] as NearbyPlace[],
+        error:
+          "Google Places non è collegato al progetto: collega Google Maps per vedere alloggi e noleggi reali.",
+      };
+    }
+
+    const key = `google_places_v4:${data.kind}:${data.lat.toFixed(3)}:${data.lng.toFixed(3)}:${data.radiusM}`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const cached = await supabaseAdmin
@@ -221,7 +229,8 @@ export const nearbyForLift = createServerFn({ method: "POST" })
         method: "POST",
         headers: gatewayHeaders(FIELD_MASK),
         body: JSON.stringify({
-          textQuery: "noleggio sci e snowboard",
+          textQuery: "ski rental equipment noleggio sci e snowboard",
+          includedType: "store",
           maxResultCount: 20,
           languageCode: "it",
           regionCode: "IT",
@@ -243,7 +252,8 @@ export const nearbyForLift = createServerFn({ method: "POST" })
     }
 
     // Ordiniamo per reputazione reale: prima le strutture con voti e recensioni.
-    const raw = mapPlaces(await response.json()).sort((a, b) => {
+    const raw = mapPlaces(await response.json(), data.kind).sort((a, b) => {
+
       const score = (p: typeof a) =>
         (p.rating ?? 0) * Math.log10((p.userRatingCount ?? 0) + 1) + (p.photoName ? 0.5 : 0);
       return score(b) - score(a);
